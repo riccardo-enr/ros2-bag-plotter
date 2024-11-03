@@ -2,13 +2,7 @@ clear;
 close all;
 clc;
 
-% Prompt the user to select a CSV file
-[file, path] = uigetfile('../data/*.csv', 'Select a CSV file');
-if isequal(file, 0)
-    disp('User canceled the file selection.');
-    return;
-end
-fullFileName = fullfile(path, file);
+fullFileName = get_plotter_data("../data/csv_converted/sitl_1.csv");
 
 % Read the CSV data
 data = readtable(fullFileName);

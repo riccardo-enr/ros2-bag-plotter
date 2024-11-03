@@ -1,0 +1,87 @@
+clear;
+close all;
+clc;
+
+% Prompt the user to select a CSV file
+[file, path] = uigetfile('../data/*.csv', 'Select a CSV file');
+if isequal(file, 0)
+    disp('User canceled the file selection.');
+    return;
+end
+fullFileName = fullfile(path, file);
+
+% Read the CSV data
+data = readtable(fullFileName, );
+
+%% Extract Actual UAV Position Data
+requiredCols = {'x_fmu_out_vehicle_odometry_position_0_', ...
+                'x_fmu_out_vehicle_odometry_position_1_', ...
+                'x_fmu_out_vehicle_odometry_position_2_'};
+if all(ismember(requiredCols, data.Properties.VariableNames))
+    x_ned = data.x_fmu_out_vehicle_odometry_position_0_; % North
+    y_ned = data.x_fmu_out_vehicle_odometry_position_1_; % East
+    z_ned = data.x_fmu_out_vehicle_odometry_position_2_; % Down
+else
+    error('Required odometry columns are not present in the selected file.');
+end
+
+% Interpolate missing actual position data
+time = (1:length(x_ned))'; % Create a simple time vector based on index
+x_ned = fillmissing(x_ned, 'linear', 'SamplePoints', time);
+y_ned = fillmissing(y_ned, 'linear', 'SamplePoints', time);
+z_ned = fillmissing(z_ned, 'linear', 'SamplePoints', time);
+
+% Convert actual position from NED to ENU
+x_enu = y_ned;     % East
+y_enu = x_ned;     % North
+z_enu = -z_ned;    % Up
+
+%% Extract Reference Position Data
+refCols = {'x_debug_ref_pose_pose_position_x', ...
+           'x_debug_ref_pose_pose_position_y', ...
+           'x_debug_ref_pose_pose_position_z'};
+if all(ismember(refCols, data.Properties.VariableNames))
+    x_ref_ned = data.x_debug_ref_pose_pose_position_x; % North
+    y_ref_ned = data.x_debug_ref_pose_pose_position_y; % East
+    z_ref_ned = data.x_debug_ref_pose_pose_position_z; % Down
+else
+    error('Required reference position columns are not present in the selected file.');
+end
+
+% Interpolate missing reference position data
+x_ref_ned = fillmissing(x_ref_ned, 'linear', 'SamplePoints', time);
+y_ref_ned = fillmissing(y_ref_ned, 'linear', 'SamplePoints', time);
+z_ref_ned = fillmissing(z_ref_ned, 'linear', 'SamplePoints', time);
+
+% Convert reference position from NED to ENU
+x_ref_enu = y_ref_ned;     % East
+y_ref_enu = x_ref_ned;     % North
+z_ref_enu = -z_ref_ned;    % Up
+
+%% Compute RMSE
+% Calculate RMSE for each axis
+rmse_x = sqrt(mean((x_enu - x_ref_enu).^2));
+rmse_y = sqrt(mean((y_enu - y_ref_enu).^2));
+rmse_z = sqrt(mean((z_enu - z_ref_enu).^2));
+
+% Display RMSE results
+fprintf('RMSE for X: %.3f\n', rmse_x);
+fprintf('RMSE for Y: %.3f\n', rmse_y);
+fprintf('RMSE for Z: %.3f\n', rmse_z);
+
+%% Plot the 3D Trajectories
+figure('Color', 'white'); % Set background to white for better visibility
+plot3(x_enu, y_enu, z_enu, 'b-', 'LineWidth', 1.5); % Actual trajectory in blue
+hold on;
+plot3(x_ref_enu, y_ref_enu, z_ref_enu, 'r--', 'LineWidth', 1.5); % Reference trajectory in red dashed line
+
+% Configure the plot
+grid on;
+xlabel('X Position (East)', 'FontWeight', 'bold');
+ylabel('Y Position (North)', 'FontWeight', 'bold');
+zlabel('Z Position (Up)', 'FontWeight', 'bold');
+title('3D Plot of UAV Trajectory vs. Reference', 'FontSize', 14, 'FontWeight', 'bold');
+legend('Actual Trajectory', 'Reference Trajectory', 'Location', 'best');
+axis equal; % Set equal scaling for all axes
+view(3); % Set a 3D view for better visualization
+hold off;
