@@ -11,7 +11,7 @@ function plot_nmpc_histogram(data)
 
         % Plot the histogram with relative frequency
         figure('Color', 'white'); % Set background to white
-        histogram(solve_times, 'Normalization', 'probability', ...
+        histogram(solve_times, 30, 'Normalization', 'probability', ...
                   'FaceColor', [0.2 0.2 0.8], 'EdgeColor', 'black');
         hold on;
 
@@ -25,7 +25,7 @@ function plot_nmpc_histogram(data)
         grid on;
         xlabel('NMPC Solve Time (seconds)', 'FontWeight', 'bold');
         ylabel('Relative Frequency', 'FontWeight', 'bold');
-        title('Histogram of NMPC Solve Times with Gaussian Fit', 'FontSize', 14, 'FontWeight', 'bold');
+        title('NMPC Solve Times - Histogram', 'FontSize', 14, 'FontWeight', 'bold');
 
         % Create legend text with mean and standard deviation
         legend_text = sprintf('Gaussian Fit\nMean: %.4f s\nStd Dev: %.4f s', mean_solve_time, std_solve_time);
